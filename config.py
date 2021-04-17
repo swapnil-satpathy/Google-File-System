@@ -9,4 +9,6 @@ CHUNK_SIZE=2048
 # We will be using 1 KB message size
 MESSAGE_SIZE=1024
 NO_OF_CHUNKSERVERS = 4
+
+chunk_servers_ip=["127.0.0.1","127.0.0.1","127.0.0.1","127.0.0.1"]
 chunk_servers_port= [6467,6468,6469,6470]

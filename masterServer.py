@@ -8,6 +8,8 @@ import json
 import copy
 import config
 from upload import upload
+import dS
+from download import download
 
 
 
@@ -18,16 +20,20 @@ from upload import upload
 
 # Accept requests from client/chunkserver and process accordingly
 def listening(message_from_client,client_socket):
-    message_from_client_split=message_from_client.split("|")
+    message_from_client_split=message_from_client.split("//")
     command=message_from_client_split[0]
     # If the client wants to upload
-    if (command== 'U'):
-        upload(message_from_client_split)
+    if (command == 'U'):
+        str_to_return=upload(message_from_client_split)
+        str_to_return_in_bytes=str.encode(str_to_return)
+        client_socket.send(str_to_return_in_bytes)
+        client_socket.close()
+
 
 
     #If the client wants to download
     elif(command == 'D'):
-        pass
+        str_to_return=download(message_from_client,client_socket)
 
 
     #If the client wants to put lease on the file
@@ -45,12 +51,13 @@ def listening(message_from_client,client_socket):
 def master_listen():
     # Create a socket object
     s=socket.socket()
-    s.bind(("",config.master_server_port))
+    s.bind((config.master_server_ip,config.master_server_port))
     s.listen(5)
     while True:
         client_socket,client_addr=s.accept()
         message_from_client=client_socket.recv(config.MESSAGE_SIZE).decode()
         print(message_from_client)
+        print("\n")
         thread1=threading.Thread(target=listening,args=(message_from_client,client_socket,))
         thread1.start()
     s.close()
