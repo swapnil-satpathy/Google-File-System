@@ -143,7 +143,26 @@ def downloadFile(file_name):
 	#encode the string into bytes
 	str_to_send_in_bytes=str.encode(str_to_send)
 	download_socket.send(str_to_send_in_bytes)
-	
+
+
+	file_names=download_socket.recv(config.MESSAGE_SIZE).decode()
+	file_names=fileParser(file_names,download_socket)
+
+	if file_names==-1:
+		return
+
+	for file_name in file_names:
+		message_from_server=download_socket.recv(config.MESSAGE_SIZE).decode()
+		print("In the client I have received," message_from_server)
+		if message_from_server[0] == 'S':
+			print(f'{file_name} currently not available, will check again in 20 sec and then abort')
+			message_from_server=download_socket.recv(config.MESSAGE_SIZE).decode()
+		else if message_from_server[0] == 'F':
+			print(f'File is blocked')
+		else:
+			pass
+
+
 
 
 
@@ -159,6 +178,16 @@ def download(file_names):
 	for file_name in file_names:
 		downloadFile(file_name)
 
+def lease(file_name):
+	lease_socket=socket.socket()
+	try:
+		lease_socket.connect((config.master_server_ip,config.master_server_port))
+		print ("Connected with master server for lease functionality")
+	except ConnectionRefusedError:
+		print("try connecting to BackUp")
+	str_to_send="|".join(["L",file_name[0],""])
+	str_to_send = str_to_send + (config.MESSAGE_SIZE - len(str_to_send))*'\0'
+	lease_socket.send(str.encode(str_to_send))
 
 
 

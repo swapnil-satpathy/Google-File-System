@@ -9,7 +9,9 @@ import copy
 import config
 from upload import upload
 import dS
+import time
 from download import download
+from lease import lease
 
 
 
@@ -34,11 +36,23 @@ def listening(message_from_client,client_socket):
     #If the client wants to download
     elif(command == 'D'):
         str_to_return=download(message_from_client,client_socket)
+        if str_to_return[0] == 'S':
+            str_to_return_in_bytes=str.encode(str_to_return)
+            client_socket.send(str_to_return_in_bytes)
+            time.sleep(20)
+            str_to_return=download(message_from_client,client_socket,'S')
+        if str_to_return[0] == 'F':
+            str_to_return_in_bytes=str.encode(str_to_return)
+            client_socket.send(str_to_return_in_bytes)
+            client_socket.close()
+
+
+
 
 
     #If the client wants to put lease on the file
     elif(command == 'L'):
-        pass
+        lease(message_from_client)
     #if the client wants to update any file
     elif(command == 'Up'):
         pass
