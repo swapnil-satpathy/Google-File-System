@@ -26,22 +26,19 @@ def integerToString(message_splitted):
     message+='\0'*(config.MESSAGE_SIZE-len(message))
     return message
 
+
 def fileParser(file_names,download_socket):
     file_names_splitted=file_names.split("|")
-    return_value=None
     if file_names_splitted[0] == 'f':
-        file_name=[]
-        for x in vals[1:-1]:
-            file_name.append(x.strip())
+        file_name=[x.strip() for x in file_names_splitted[1:-1]]
         return file_name
-    if file_names_splitted[0] == 'F':
-        print(f'File is blocked')
-        return -1
-
+    return_value=None
     if file_names_splitted[0] == 'S':
-        print(f'File currently not available,will abort in 20 seconds if not available ...')
+        print(f'File currently not availble, will try again in 20 seconds')
         return_value=download_socket.recv(config.MESSAGE_SIZE).decode()
-    return_value_splitted=return_value.split("|")
-    if return_value_splitted[0]!='f':
+
+    if file_names_splitted[0] == 'F':
+        print(f'The file is blocked')
         return -1
-    return [file_name.strip() for file_name in return_value_splitted[1:-1]]
+    vals=return_value.split("|")
+    return [x.strip() for x in vals[1:-1]]

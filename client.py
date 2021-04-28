@@ -69,13 +69,13 @@ def uploadFile(file_name):
 	master_server_port=config.master_server_port
 	try:
 		s.connect((master_server_ip,master_server_port))
-		print("Connection success with Master Server")
+		print("Connected with Master Server for uploading a file")
 	except ConnectionRefusedError :
 		print("Failed to connect to Master Server")
 	file_size=os.path.getsize(os.getcwd()+"/"+file_name)
 	file_hash=utility.calculateHash(file_name)
 	#This is the format in which the string will be send from client
-	str_to_send = "//".join(["U", file_name, str(file_size), file_hash, ""])
+	str_to_send = "|".join(["U", file_name, str(file_size), file_hash, ""])
 	# We are padding the message to a size of 1024 is the message size is less than 1kB
 	str_to_send = str_to_send + (config.MESSAGE_SIZE - len(str_to_send))*'\0'
 
@@ -132,35 +132,56 @@ def uploadFile(file_name):
 
 def downloadFile(file_name):
 	download_socket=socket.socket()
+
 	try:
 		download_socket.connect((config.master_server_ip,config.master_server_port))
-		print("Connected with Master Server for downloading")
-	except:
-		print("Connect to BackuP Master")
+		print ("Connected with master server for Downloading a file")
+	except ConnectionRefusedError:
+		print("try connecting to BackUp")
 
 	str_to_send="|".join(["D",file_name,""])
 	str_to_send = str_to_send + (config.MESSAGE_SIZE - len(str_to_send))*'\0'
-	#encode the string into bytes
 	str_to_send_in_bytes=str.encode(str_to_send)
 	download_socket.send(str_to_send_in_bytes)
 
-
+	# Handling the message received from master server
 	file_names=download_socket.recv(config.MESSAGE_SIZE).decode()
-	file_names=fileParser(file_names,download_socket)
+	file_names=utility.fileParser(file_names,download_socket)
 
-	if file_names==-1:
+	if file_names == -1:
 		return
-
 	for file_name in file_names:
 		message_from_server=download_socket.recv(config.MESSAGE_SIZE).decode()
-		print("In the client I have received," message_from_server)
+		print("This below is the reply from master server in download")
+		print(message_from_server)
+
 		if message_from_server[0] == 'S':
-			print(f'{file_name} currently not available, will check again in 20 sec and then abort')
+			print(f'{file_name} is currently not available will try again after 20 seconds')
 			message_from_server=download_socket.recv(config.MESSAGE_SIZE).decode()
-		else if message_from_server[0] == 'F':
-			print(f'File is blocked')
+		elif message_from_server[0] == 'F':
+			print('f{file_name} is blocked')
+
 		else:
-			pass
+			message_from_server2=download_socket.recv(config.MESSAGE_SIZE).decode()
+			message_from_server2_splitted=message_from_server2.split("|")
+			file_hash_value=""
+			if message_from_server2_splitted[0] == 'Z':
+				file_hash_value=message_from_server2_splitted[1]
+
+	download_socket.close()
+	#This commented below logic to be seen after
+	# if len(file_names) == 1:
+	# 	return
+	# output_name=file_names[0]
+	# for file_name in file_names[:-1]:
+	# 	os.remove(file_name)
+	# os.remove(file_names[-1],output_name)
+
+
+
+
+
+
 
 
 
@@ -182,12 +203,34 @@ def lease(file_name):
 	lease_socket=socket.socket()
 	try:
 		lease_socket.connect((config.master_server_ip,config.master_server_port))
-		print ("Connected with master server for lease functionality")
+		print ("Connected with master server for putting lease on a file")
 	except ConnectionRefusedError:
 		print("try connecting to BackUp")
 	str_to_send="|".join(["L",file_name[0],""])
 	str_to_send = str_to_send + (config.MESSAGE_SIZE - len(str_to_send))*'\0'
 	lease_socket.send(str.encode(str_to_send))
+
+
+
+
+def update(args):
+	old_file,new_file = args[0],args[1]
+	str_to_send=f"Up|{old_file}|{new_file}|"
+	str_to_send = str_to_send + (config.MESSAGE_SIZE - len(str_to_send))*'\0'
+	update_socket=socket.socket()
+	try:
+		update_socket.connect((config.master_server_ip,config.master_server_port))
+		print ("Connected with master server for updating a file")
+	except ConnectionRefusedError:
+		print("try connecting to BackUp")
+
+	update_socket.send(str.encode(str_to_send))
+	update_socket.close()
+	uploadFile(new_file)
+
+
+
+
 
 
 
@@ -207,6 +250,8 @@ if __name__ == '__main__':
 			download(args_split[1:])
 		elif (command == "lease"):
 			lease(args_split[1:])
+
+		# The update syntax is update old_file new_file
 		elif (command == "update"):
 			update(args_split[1:])
 
